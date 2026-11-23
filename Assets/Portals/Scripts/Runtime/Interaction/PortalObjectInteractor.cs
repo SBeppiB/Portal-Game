@@ -1,5 +1,6 @@
 using System.Collections;
 using Portals.Core;
+using Portals.Game;
 using Portals.Traversal;
 using UnityEngine;
 
@@ -61,7 +62,7 @@ namespace Portals.Interaction
 
         private void Update()
         {
-            if (Input.GetKeyDown(m_InteractKey)) HandleInteractInput();
+            if (GameplayInput.GetKeyDown(m_InteractKey)) HandleInteractInput();
 
             if (m_HeldObject != null && m_PendingDropTime >= 0f &&
                 Time.time - m_PendingDropTime >= m_DoubleClickWindow)

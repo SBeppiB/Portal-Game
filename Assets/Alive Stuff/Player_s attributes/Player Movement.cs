@@ -56,7 +56,7 @@ public class PlayerMovement : MonoBehaviour, IPortalMomentumReceiver
         public bool HighJumpDown => Input.GetKeyDown(KeyCode.F);
         public bool HighJumpHeld => Input.GetKey(KeyCode.F);
         public bool HighJumpUp => Input.GetKeyUp(KeyCode.F);
-        public bool GrappleDown => Input.GetKeyDown(KeyCode.R);
+        public bool GrappleDown => Input.GetKeyDown(KeyCode.G);
         public bool GlideDown => Input.GetKeyDown(KeyCode.V);
         public bool GlideHeld => Input.GetKey(KeyCode.V);
         public float MouseX => Input.GetAxis("Mouse X");
@@ -608,6 +608,11 @@ public class PlayerMovement : MonoBehaviour, IPortalMomentumReceiver
 
     void Update()
     {
+        // Pause, menus and gameplay UI panels (crafting / universe selection) own the
+        // input. Reading mouse axes while a panel is open would spin the camera while
+        // the player moves the cursor to click.
+        if (Portals.Game.GameplayInput.Blocked) return;
+
         // Cache per-frame values once
         deltaTime = Time.deltaTime;
         currentTime = Time.time;

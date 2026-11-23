@@ -42,6 +42,7 @@ public class PlayerMovementManager : MonoBehaviour
 
     void Update()
     {
+        if (Portals.Core.PauseManager.IsPaused) return;
         // Central update logic can go here if needed
         UpdateMovementState();
     }

@@ -24,10 +24,10 @@ namespace Portals.Integration
 
         public float Duration => Lifetime;
         public float Elapsed => m_Elapsed;
-        public bool IsDecaying => !m_Destroyed && m_Enabled;
+        public bool IsDecaying => !m_Destroyed && m_DecayEnabled;
         public Material GooMaterial => m_Material;
 
-        private bool m_Enabled;
+        private bool m_DecayEnabled;
 
         /// <summary>
         /// Finds the floor beneath a closed portal with a downward raycast and spawns a
@@ -62,7 +62,7 @@ namespace Portals.Integration
         {
             m_Elapsed = 0f;
             m_Destroyed = false;
-            m_Enabled = true;
+            m_DecayEnabled = true;
 
             m_Mesh = BuildPuddleMesh(Mathf.Max(0.05f, m_Radius), Mathf.Max(8, m_Segments));
             MeshFilter filter = gameObject.AddComponent<MeshFilter>();
@@ -88,7 +88,7 @@ namespace Portals.Integration
         /// </summary>
         public void Tick(float deltaTime)
         {
-            if (!m_Enabled || m_Destroyed || deltaTime <= 0f) return;
+            if (!m_DecayEnabled || m_Destroyed || deltaTime <= 0f) return;
 
             m_Elapsed += deltaTime;
             float t = Lifetime <= 0f ? 1f : Mathf.Clamp01(m_Elapsed / Lifetime);
@@ -97,7 +97,7 @@ namespace Portals.Integration
             if (m_Elapsed < Lifetime) return;
 
             m_Destroyed = true;
-            m_Enabled = false;
+            m_DecayEnabled = false;
             Destroy(gameObject);
         }
 

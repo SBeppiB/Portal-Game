@@ -14,7 +14,7 @@ namespace Portals.Integration
     public class PortalScreenWobble : MonoBehaviour
     {
         [Header("Effect")]
-        [SerializeField] private bool m_Enabled = true;
+        [SerializeField] private bool m_WobbleEnabled = true;
         [SerializeField, Range(0f, 1f)] private float m_Intensity = 0.35f;
         [SerializeField, Min(0.05f)] private float m_Duration = 0.25f;
 
@@ -27,7 +27,7 @@ namespace Portals.Integration
         private bool m_Active;
         private Texture2D m_Overlay;
 
-        public bool Enabled => m_Enabled;
+        public bool Enabled => m_WobbleEnabled;
         public float Intensity => m_Intensity;
         public float Duration => m_Duration;
         public bool IsActive => m_Active;
@@ -60,21 +60,21 @@ namespace Portals.Integration
 
         private void OnTraversed(PortalTraversalInfo info)
         {
-            if (!m_Enabled) return;
+            if (!m_WobbleEnabled) return;
             Trigger();
         }
 
         /// <summary>Starts the wobble. Exposed for tests and scripted use.</summary>
         public void Configure(bool enabled, float intensity, float duration)
         {
-            m_Enabled = enabled;
+            m_WobbleEnabled = enabled;
             m_Intensity = Mathf.Clamp01(intensity);
             m_Duration = Mathf.Max(0.05f, duration);
         }
 
         public void Trigger()
         {
-            if (!m_Enabled) return;
+            if (!m_WobbleEnabled) return;
             if (m_Camera == null) m_Camera = Camera.main;
             if (m_Camera == null) return;
 

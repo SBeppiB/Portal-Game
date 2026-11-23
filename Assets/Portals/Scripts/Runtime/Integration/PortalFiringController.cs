@@ -1,5 +1,6 @@
 using System;
 using Portals.Core;
+using Portals.Game;
 using UnityEngine;
 
 namespace Portals.Integration
@@ -195,19 +196,19 @@ namespace Portals.Integration
         {
             if (m_AIControlled) return;
 
-            if (Input.GetKeyDown(m_EquipKey)) ToggleEquipped();
-            if (Input.GetKeyDown(m_ModeToggleKey)) ToggleTravelMode();
-            if (Input.GetKeyDown(m_PersistenceKey)) TogglePersistence();
-            if (Input.GetKeyDown(m_CloseAllKey)) CloseAllPortals();
+            if (GameplayInput.GetKeyDown(m_EquipKey)) ToggleEquipped();
+            if (GameplayInput.GetKeyDown(m_ModeToggleKey)) ToggleTravelMode();
+            if (GameplayInput.GetKeyDown(m_PersistenceKey)) TogglePersistence();
+            if (GameplayInput.GetKeyDown(m_CloseAllKey)) CloseAllPortals();
 
             for (int i = 0; i < 9; i++)
             {
                 KeyCode digit = (KeyCode)((int)KeyCode.Alpha1 + i);
                 KeyCode keypad = (KeyCode)((int)KeyCode.Keypad1 + i);
-                if (Input.GetKeyDown(digit) || Input.GetKeyDown(keypad)) SelectDimension(i);
+                if (GameplayInput.GetKeyDown(digit) || GameplayInput.GetKeyDown(keypad)) SelectDimension(i);
             }
 
-            if (IsEquipped && m_UseMouseButtons && Input.GetMouseButtonDown(0))
+            if (IsEquipped && m_UseMouseButtons && GameplayInput.GetMouseButtonDown(0))
                 Fire();
 
             if (m_AimLine != null && m_AimLine.enabled && Time.time >= m_AimLineHideTime)

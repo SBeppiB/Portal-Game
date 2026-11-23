@@ -31,6 +31,7 @@ public class JumpController : MonoBehaviour
 
     void Update()
     {
+        if (Portals.Core.PauseManager.IsPaused) return;
         CheckGrounded();
         HandleJump();
     }

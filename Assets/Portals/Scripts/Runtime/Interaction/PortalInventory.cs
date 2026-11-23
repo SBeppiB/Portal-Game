@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Portals.Game;
 using UnityEngine;
 
 namespace Portals.Interaction
@@ -25,6 +26,11 @@ namespace Portals.Interaction
         [SerializeField] private Camera m_Camera;
 
         private readonly List<GameObject> m_Slots = new List<GameObject>();
+
+        // Cached GUI labels; OnGUI runs several times per frame and rebuilding these
+        // strings on every call caused constant GC pressure.
+        private string[] m_Labels;
+        private float m_NextRefresh;
 
         public int Capacity => m_Capacity;
         public int Count
@@ -56,15 +62,15 @@ namespace Portals.Interaction
 
         private void Update()
         {
-            if (Input.GetKeyDown(m_NextSlotKey)) SelectNext();
-            if (Input.GetKeyDown(m_PreviousSlotKey)) SelectPrevious();
+            if (GameplayInput.GetKeyDown(m_NextSlotKey)) SelectNext();
+            if (GameplayInput.GetKeyDown(m_PreviousSlotKey)) SelectPrevious();
 
             // Mouse wheel is the discoverable, conflict-free way to cycle slots.
-            float wheel = Input.GetAxis("Mouse ScrollWheel");
+            float wheel = GameplayInput.GetAxis("Mouse ScrollWheel");
             if (wheel > 0.001f) SelectNext();
             else if (wheel < -0.001f) SelectPrevious();
 
-            if (Input.GetKeyDown(m_StoreKey) && m_Interactor != null)
+            if (GameplayInput.GetKeyDown(m_StoreKey) && m_Interactor != null)
             {
                 GameObject held = m_Interactor.ReleaseHeldForStorage();
                 if (held != null)
@@ -73,9 +79,9 @@ namespace Portals.Interaction
                 }
             }
 
-            if (Input.GetKeyDown(m_RetrieveKey)) RetrieveSelected();
+            if (GameplayInput.GetKeyDown(m_RetrieveKey)) RetrieveSelected();
 
-            if (Input.GetKeyDown(m_DropKey))
+            if (GameplayInput.GetKeyDown(m_DropKey))
             {
                 Vector3 dropPosition = m_Camera != null
                     ? m_Camera.transform.position + m_Camera.transform.forward * m_RetrieveDistance
@@ -174,18 +180,30 @@ namespace Portals.Interaction
 
         private void OnGUI()
         {
+            if (m_Labels == null || Time.time >= m_NextRefresh)
+            {
+                m_NextRefresh = Time.time + 0.2f;
+                RebuildLabels();
+            }
+
             float height = m_Capacity * 20f + 46f;
             GUILayout.BeginArea(new Rect(16f, Screen.height - height - 8f, 260f, height));
             for (int i = 0; i < m_Capacity; i++)
-            {
-                string label = m_Slots[i] == null
-                    ? $"[{i}] empty"
-                    : $"[{i}] {m_Slots[i].name}";
-                if (i == SelectedSlot) label = "> " + label;
-                GUILayout.Label(label);
-            }
+                GUILayout.Label(m_Labels[i]);
             GUILayout.Label("E pick up  Q store  C retrieve  X drop  [ ] / wheel select");
             GUILayout.EndArea();
+        }
+
+        private void RebuildLabels()
+        {
+            if (m_Labels == null || m_Labels.Length != m_Capacity) m_Labels = new string[m_Capacity];
+            for (int i = 0; i < m_Capacity; i++)
+            {
+                GameObject slot = m_Slots[i];
+                string label = slot == null ? "[" + i + "] empty" : "[" + i + "] " + slot.name;
+                if (i == SelectedSlot) label = "> " + label;
+                m_Labels[i] = label;
+            }
         }
     }
 }

@@ -17,10 +17,35 @@ namespace Portals.Integration
         private GUIStyle m_Mode;
         private GUIStyle m_Label;
 
+        // Cached label strings. OnGUI runs several times per frame; rebuilding these
+        // interpolated strings on every call caused constant GC pressure, so they are
+        // refreshed a few times per second instead.
+        private string m_ModeText = "";
+        private string m_DimensionText = "";
+        private string m_GunText = "";
+        private string m_NextPortalText = "";
+        private string m_PairText = "";
+        private string m_LifetimeText = "";
+        private float m_NextRefresh;
+
         private void Awake()
         {
             if (m_Controller == null) m_Controller = GetComponent<PortalFiringController>();
             if (m_Controller == null) m_Controller = FindFirstObjectByType<PortalFiringController>();
+        }
+
+        private void RefreshText()
+        {
+            if (m_Controller == null || Time.time < m_NextRefresh) return;
+            m_NextRefresh = Time.time + 0.2f;
+
+            m_ModeText = m_Controller.TravelModeLabel;
+            m_DimensionText = "Dimension: " + (m_Controller.SelectedDimensionIndex + 1) +
+                              " - " + m_Controller.SelectedDimensionName;
+            m_GunText = "Gun: " + (m_Controller.IsEquipped ? "EQUIPPED" : "HIDDEN");
+            m_NextPortalText = "Next portal: " + m_Controller.SelectedPortalLabel;
+            m_PairText = m_Controller.PairLabel;
+            m_LifetimeText = "Lifetime: " + m_Controller.LifetimeLabel;
         }
 
         private void EnsureStyles()
@@ -57,33 +82,28 @@ namespace Portals.Integration
         {
             if (m_Controller == null) return;
             EnsureStyles();
+            RefreshText();
 
             Rect panel = new Rect(16f, 16f, 340f, m_ShowHelpLine ? 180f : 170f);
             GUI.Box(panel, GUIContent.none, m_Panel);
 
             float y = panel.y + 8f;
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 34f),
-                m_Controller.TravelModeLabel, m_Mode);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 34f), m_ModeText, m_Mode);
             y += 34f;
 
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f),
-                $"Dimension: {m_Controller.SelectedDimensionIndex + 1} - {m_Controller.SelectedDimensionName}", m_Label);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f), m_DimensionText, m_Label);
             y += 22f;
 
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f),
-                $"Gun: {(m_Controller.IsEquipped ? "EQUIPPED" : "HIDDEN")}", m_Label);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f), m_GunText, m_Label);
             y += 22f;
 
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f),
-                $"Next portal: {m_Controller.SelectedPortalLabel}", m_Label);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f), m_NextPortalText, m_Label);
             y += 22f;
 
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f),
-                m_Controller.PairLabel, m_Label);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f), m_PairText, m_Label);
             y += 22f;
 
-            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f),
-                $"Lifetime: {m_Controller.LifetimeLabel}", m_Label);
+            GUI.Label(new Rect(panel.x + 12f, y, panel.width - 24f, 22f), m_LifetimeText, m_Label);
             y += 24f;
 
             if (GUI.Button(new Rect(panel.x + 12f, y, 112f, 24f), "Close All"))

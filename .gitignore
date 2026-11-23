@@ -33,3 +33,13 @@ Thumbs.db
 # Large/build
 *.apk
 *.aab
+
+# Plastic SCM metadata (machine-specific)
+/.plastic/
+
+# Runtime logs and diagnostics
+/DebugLogs/
+*.log
+
+# Generated test results
+/Documentation/TestResults_*.xml

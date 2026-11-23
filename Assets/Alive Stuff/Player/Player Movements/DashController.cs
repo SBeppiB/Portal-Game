@@ -42,6 +42,7 @@ public class DashController : MonoBehaviour, IPortalMomentumReceiver
 
     void Update()
     {
+        if (Portals.Core.PauseManager.IsPaused) return;
         if (Input.GetKeyDown(dashKey) && CanDash)
         {
             StartDash();

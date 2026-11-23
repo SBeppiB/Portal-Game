@@ -29,6 +29,8 @@ namespace Portals.Core
         // Optional per-owner pairs (e.g. enemies with their own guns). null key = player/default pair.
         private readonly Dictionary<object, PortalPair> m_ScopedPairs =
             new Dictionary<object, PortalPair>();
+        // Reused every Tick so the per-frame update performs no heap allocation.
+        private readonly List<PortalPair> m_TickBuffer = new List<PortalPair>(4);
         private bool m_Initialized;
 
         public event Action StateChanged;
@@ -116,11 +118,18 @@ namespace Portals.Core
         {
             if (deltaTime <= 0f) return;
 
-            // Snapshot: expiry may close and remove pairs from management.
-            List<PortalPair> pairs = new List<PortalPair>(AllPairs());
-            for (int i = 0; i < pairs.Count; i++)
+            // Fast path: nothing to tick (no player pair and no scoped pairs).
+            if (m_ActivePair == null && m_ScopedPairs.Count == 0) return;
+
+            // Snapshot into a reusable buffer (expiry may mutate the dictionaries).
+            m_TickBuffer.Clear();
+            if (m_ActivePair != null) m_TickBuffer.Add(m_ActivePair);
+            foreach (PortalPair pair in m_ScopedPairs.Values)
+                if (pair != null) m_TickBuffer.Add(pair);
+
+            for (int i = 0; i < m_TickBuffer.Count; i++)
             {
-                PortalPair pair = pairs[i];
+                PortalPair pair = m_TickBuffer[i];
                 if (pair.Persistent || !pair.IsComplete) continue;
 
                 pair.RemainingLifetime -= deltaTime;

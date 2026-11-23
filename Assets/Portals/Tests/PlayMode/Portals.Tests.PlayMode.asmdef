@@ -3,6 +3,7 @@
     "rootNamespace": "Portals.Tests",
     "references": [
         "Portals.Runtime",
+        "Game.Runtime",
         "UnityEngine.TestRunner"
     ],
     "includePlatforms": [],
