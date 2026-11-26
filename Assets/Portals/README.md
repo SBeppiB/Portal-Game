@@ -237,6 +237,53 @@ longer emerge inside/behind the exit wall.
 
 Last verified result: **32/32 EditMode passed, 85/88 PlayMode passed** on Unity 6000.3.2f1 (3 pre-existing failures unrelated to this change).
 
+## 10. Omniversal Portal Mechanics (OPM)
+
+### Architecture
+Namespace: `Portals.Runtime.Mechanics`.
+
+Classes:
+- `OmniversalCoordinates`: destination coordinate P=(L,R,A,θ,ρ,x,y,z).
+- `PortalDisplacementCalculator`: circular AU distance, angular distance, displacement values, DT.
+- `PortalStructuralAnalyzer`: structural divergence VD.
+- `PortalEnergyCalculator`: base/structural/instability/layer/rift/total energy.
+- `PortalStabilityCalculator`: SP, compatibility, integrity, eligibility.
+- `PortalAccuracyCalculator`: coordinate error εP and accuracy AP.
+- `UniverseStructuralProfile`: destination environmental conditions.
+- `OmniversalScanner`, `UniverseSignature`, `UniverseSignatureDatabase`, `OmniversalScanResult`.
+- `OPMConfiguration` (ScriptableObject, alias `PortalMechanicsConfiguration`).
+- `PortalFormationEvaluator` / `PortalFormationService`.
+- `PortalDiagnosticData`, `PortalFormationResult`, `PortalFormationFailureReason`.
+- `PortalTravelMode` (Uniport/Altiport).
+
+### Coordinate conventions
+- Layers: 1..50 (max displacement 49).
+- Rings: 0..9 (max displacement 9).
+- AU positions: 0..179 circular (AU distance wraps).
+- Prime AUs represented via `IsPrimeAu`.
+- θ in degrees [0,360), angular distance min(d,360-d).
+- ρ non-negative, local spatial (x,y,z).
+
+### Equations
+q = wL(DL/49)^2 + wR(DR/9)^2 + wA(DA/90)^2 + wρ(Dρ/Sρ)^2 + wθ(Dθ/Sθ)^2 + wx(DS/Sx)^2
+DT = sqrt(q)
+VD = min(1, wR*VR + wA*VA + wL*VL)
+Eportal = K*DT^α*(1+βVD)*(1+γU)*(1+λDL+μVR)*(1+ηF/(1+B))
+SP = Eavailable/(Eportal*(1+U))
+AP = 1/(1+εP), εP = sqrt(εL²+εR²+εA²+ερ²+εx²)
+CP = 1-VD, IP = SP*CP.
+
+### Integration
+OPM calculates required energy and formation eligibility; existing EnergyStorage/PortalEnergySystem remain authority for consuming energy. Failed formation does not consume energy. Uniport/Altiport travel modes reuse existing Locaversal/Interversal portals.
+
+### Known limitations
+- Scanner is synchronous with caching; simulated frequency only.
+- Visual feedback and editor inspectors not fully implemented.
+- OPMConfiguration asset must be created in project for runtime tuning (defaults available in code).
+- Characteristic scales use defaults that may need tuning.
+
+Last verified result: **102/102 EditMode passed, 95/95 PlayMode passed** on Unity 6000.3.2f1.
+
 ## 9. New features in this overhaul
 
 - Procedural portal visual: `Assets/Portals/Shaders/PortalSwirl.shader` provides polar-coordinate swirl, layered noise, radial movement, transparency layering, rim energy, and optional portal-view texture sampling. `PortalVisual` now uses it with configurable swirl speed/intensity/noise/colours/alpha.

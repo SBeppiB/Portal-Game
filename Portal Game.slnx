@@ -3,7 +3,9 @@
   <Project Path="Portals.Tests.EditMode.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Portals.Runtime.csproj" />
+  <Project Path="Mechanics.Tests.EditMode.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Portals.Tests.PlayMode.csproj" />
   <Project Path="Game.Editor.csproj" />
+  <Project Path="Mechanics.Runtime.csproj" />
 </Solution>

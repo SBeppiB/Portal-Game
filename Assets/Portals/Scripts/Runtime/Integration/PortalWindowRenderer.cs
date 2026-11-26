@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Portals.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -26,6 +27,13 @@ namespace Portals.Integration
         private PortalVisual m_Visual;
         private int m_RecursionDepth;
         private bool m_Initialized;
+        private MeshRenderer m_SurfaceRenderer;
+        private Material m_SurfaceMaterial;
+
+        // Static guard across all portal renderers to prevent recursive rendering:
+        // when portal A renders portal B's view, portal B must not render portal A
+        // back into the same frame.
+        private static readonly HashSet<PortalEndpoint> s_RenderingEndpoints = new HashSet<PortalEndpoint>();
 
         public PortalEndpoint SourcePortal => m_SourcePortal;
         public PortalEndpoint DestinationPortal => m_DestinationPortal;
@@ -37,6 +45,22 @@ namespace Portals.Integration
             if (m_MainCamera == null) m_MainCamera = Camera.main;
             m_Visual = GetComponent<PortalVisual>();
             EnsureInitialized();
+        }
+
+        private void OnEnable()
+        {
+            if (m_SourcePortal == null) m_SourcePortal = GetComponent<PortalEndpoint>();
+            if (m_MainCamera == null) m_MainCamera = Camera.main;
+            m_Visual = GetComponent<PortalVisual>();
+            if (m_Visual != null && m_Visual.SurfaceObject != null)
+                m_SurfaceRenderer = m_Visual.SurfaceObject.GetComponent<MeshRenderer>();
+        }
+
+        private void OnDisable()
+        {
+            // Reset the surface material so the swirl fallback shows when not rendering.
+            if (m_SurfaceRenderer != null && m_SurfaceRenderer.sharedMaterial != null)
+                m_SurfaceRenderer.sharedMaterial.SetFloat("_HasPortalView", 0f);
         }
 
         private void OnDestroy()
@@ -85,9 +109,29 @@ namespace Portals.Integration
                 m_RenderTexture.Release();
                 Destroy(m_RenderTexture);
             }
-            m_RenderTexture = new RenderTexture(size, size, 24);
-            m_RenderTexture.name = "PortalViewRT";
-            m_PortalCamera.targetTexture = m_RenderTexture;
+
+            if (!SystemInfo.supportsRenderTextures)
+            {
+                Debug.LogWarning("[PortalWindowRenderer] RenderTextures not supported on this platform; " +
+                    "falling back to swirl-only rendering.");
+                m_RenderTexture = null;
+                return;
+            }
+
+    m_RenderTexture = new RenderTexture(size, size, 24);
+    m_RenderTexture.name = "PortalViewRT";
+
+    bool created = m_RenderTexture.Create();
+    if (!created)
+    {
+        Destroy(m_RenderTexture);
+        m_RenderTexture = null;
+        Debug.LogWarning("[PortalWindowRenderer] RenderTexture creation failed; " +
+            "falling back to swirl-only rendering.");
+        return;
+    }
+
+    m_PortalCamera.targetTexture = m_RenderTexture;
         }
 
         private int ComputeResolution()
@@ -102,7 +146,16 @@ namespace Portals.Integration
             if (m_MainCamera == null) m_MainCamera = Camera.main;
             if (m_MainCamera == null) return;
 
+            // In headless/batch mode there is no GPU to render portal views; fall back to swirl.
+            if (Application.isBatchMode) return;
+
+            // Prevent recursive rendering: if our destination is currently rendering
+            // its own view (which includes us), skip this frame to break the loop.
+            if (s_RenderingEndpoints.Contains(m_DestinationPortal)) return;
+
             CreateRenderTexture();
+
+            if (m_RenderTexture == null || m_PortalCamera.targetTexture == null) return;
 
             // Transform the main camera through the portal pair.
             Matrix4x4 entrance = m_SourcePortal.transform.localToWorldMatrix;
@@ -126,17 +179,18 @@ namespace Portals.Integration
             Vector4 clipPlane = new Vector4(normal.x, normal.y, normal.z, -Vector3.Dot(normal, point));
             m_PortalCamera.projectionMatrix = m_PortalCamera.CalculateObliqueMatrix(clipPlane);
 
+            s_RenderingEndpoints.Add(m_SourcePortal);
             m_PortalCamera.Render();
+            s_RenderingEndpoints.Remove(m_SourcePortal);
 
             // Assign texture to surface material.
-            if (m_Visual != null && m_Visual.SurfaceObject != null)
+            if (m_SurfaceRenderer == null && m_Visual != null && m_Visual.SurfaceObject != null)
+                m_SurfaceRenderer = m_Visual.SurfaceObject.GetComponent<MeshRenderer>();
+            if (m_SurfaceRenderer != null && m_SurfaceRenderer.sharedMaterial != null)
             {
-                var renderer = m_Visual.SurfaceObject.GetComponent<MeshRenderer>();
-                if (renderer != null && renderer.sharedMaterial != null)
-                {
-                    renderer.sharedMaterial.SetTexture("_PortalViewTex", m_RenderTexture);
-                    renderer.sharedMaterial.SetFloat("_HasPortalView", 1f);
-                }
+                m_SurfaceMaterial = m_SurfaceRenderer.sharedMaterial;
+                m_SurfaceMaterial.SetTexture("_PortalViewTex", m_RenderTexture);
+                m_SurfaceMaterial.SetFloat("_HasPortalView", 1f);
             }
         }
     }

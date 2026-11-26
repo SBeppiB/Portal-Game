@@ -70,15 +70,27 @@ namespace Portals.Integration
             portalA.SetActive(false);
             portalB.SetActive(false);
 
-            // Interversal endpoints use the same placer/traversal pipeline. Their universe
-            // follows the dimension selected by the portal gun.
+            // Interversal endpoints use the same placer/traversal pipeline. Each endpoint
+// owns a distinct universe so traversal changes the active universe identity.
             InterversalPortal interversalA = CreateInterversalPortal("Interversal Portal A",
                 new Vector3(-6f, 1.5f, 2f), new Color(0.4f, 1f, 0.6f));
             InterversalPortal interversalB = CreateInterversalPortal("Interversal Portal B",
                 new Vector3(6f, 1.5f, 2f), new Color(1f, 0.4f, 0.8f));
-            interversalA.Configure(universeSystem.SelectedUniverse, interversalB,
+            UniverseId originUniverse = new UniverseId("Universe 1");
+            UniverseId destinationUniverse = new UniverseId("Universe 2");
+            universeSystem.GetOrCreateUniverse(originUniverse);
+            var destState = universeSystem.GetOrCreateUniverse(destinationUniverse);
+            // Universe 2 has a distinct physics profile so it feels like a different place.
+            destState.Physics = new UniversePhysicsProfile
+            {
+                gravity = new Vector3(0f, -20f, 0f),
+                linearDamping = 0.2f,
+                angularDamping = 0.2f,
+                overrideGravity = true
+            };
+            interversalA.Configure(originUniverse, interversalB,
                 InterversalMappingMode.ViaPortalFrame, Vector3.zero);
-            interversalB.Configure(universeSystem.SelectedUniverse, interversalA,
+            interversalB.Configure(destinationUniverse, interversalA,
                 InterversalMappingMode.ViaPortalFrame, Vector3.zero);
             interversalA.SetActive(false);
             interversalB.SetActive(false);
@@ -193,9 +205,20 @@ namespace Portals.Integration
                 lifecycle.RegisterPair(PortalKind.Locaversal, portalA, portalB);
             if (interversalA != null && interversalB != null && !IsRegistered(lifecycle, interversalA))
             {
-                interversalA.Configure(universeSystem.SelectedUniverse, interversalB,
+                UniverseId originUniverse = new UniverseId("Universe 1");
+                UniverseId destinationUniverse = new UniverseId("Universe 2");
+                universeSystem.GetOrCreateUniverse(originUniverse);
+                var destState = universeSystem.GetOrCreateUniverse(destinationUniverse);
+                destState.Physics = new UniversePhysicsProfile
+                {
+                    gravity = new Vector3(0f, -20f, 0f),
+                    linearDamping = 0.2f,
+                    angularDamping = 0.2f,
+                    overrideGravity = true
+                };
+                interversalA.Configure(originUniverse, interversalB,
                     InterversalMappingMode.ViaPortalFrame, Vector3.zero);
-                interversalB.Configure(universeSystem.SelectedUniverse, interversalA,
+                interversalB.Configure(destinationUniverse, interversalA,
                     InterversalMappingMode.ViaPortalFrame, Vector3.zero);
                 lifecycle.RegisterPair(PortalKind.Interversal, interversalA, interversalB);
             }
@@ -288,6 +311,8 @@ namespace Portals.Integration
             PortalVisualColours.Apply(portalObject.AddComponent<PortalVisual>(),
                 PortalKind.Locaversal, portal.OpeningHalfSize);
 
+            portalObject.AddComponent<PortalWindowIntegration>();
+
             return portal;
         }
 
@@ -305,6 +330,8 @@ namespace Portals.Integration
 
             PortalVisualColours.Apply(portalObject.AddComponent<PortalVisual>(),
                 PortalKind.Interversal, portal.OpeningHalfSize);
+
+            portalObject.AddComponent<PortalWindowIntegration>();
 
             return portal;
         }

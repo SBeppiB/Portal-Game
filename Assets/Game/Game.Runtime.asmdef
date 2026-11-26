@@ -2,6 +2,7 @@
     "name": "Game.Runtime",
     "rootNamespace": "Game",
     "references": [
+        "Assembly-CSharp",
         "Portals.Runtime",
         "UnityEngine.UI"
     ],

@@ -339,6 +339,9 @@ namespace Portals.Core
 
             PortalVisualColours.Apply(owner.AddComponent<PortalVisual>(), kind, endpoint.OpeningHalfSize);
 
+            // Attach the window integration so each portal renders its destination view.
+            owner.AddComponent<PortalWindowIntegration>();
+
             endpoint.SetActive(false);
             return endpoint;
         }

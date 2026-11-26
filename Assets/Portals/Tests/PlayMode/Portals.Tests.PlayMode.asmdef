@@ -2,6 +2,7 @@
     "name": "Portals.Tests.PlayMode",
     "rootNamespace": "Portals.Tests",
     "references": [
+        "Assembly-CSharp",
         "Portals.Runtime",
         "Game.Runtime",
         "UnityEngine.TestRunner"

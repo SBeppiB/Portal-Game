@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Portals.Core;
+using Portals.Integration;
 
 namespace Game
 {
@@ -116,6 +118,11 @@ namespace Game
             if (bridge.GetComponent<UniverseManager>() == null)
                 SetField(bridge, "m_UniverseManager", universe);
 
+            // Map interversal portal universes to content coordinates so
+            // PortalUniverseBridge can switch universe content on traversal.
+            bridge.AddMapping(new UniverseId("Universe 1"), UniverseCoordinate.Prime);
+            bridge.AddMapping(new UniverseId("Universe 2"), new UniverseCoordinate(1, 0, 0));
+
             // Load generated assets.
             var db = Resources.Load<ResourceDatabase>("Game/Generated/ResourceDatabase");
             if (db != null)
@@ -220,6 +227,11 @@ namespace Game
             // Populate the starting universe so resources are available immediately.
             // If a save is pending, UniverseManager.ApplyFrom replaces this content.
             universe.EnterUniverse(UniverseCoordinate.Prime.ToString());
+
+            // --- Automatic portal bootstrap for playable vertical slice ---
+            // Ensures the player and portal systems exist when MAINSCENE is played,
+            // without requiring manual invocation of PortalSceneSetup.EnsureSetup().
+            EnsurePortalBootstrap();
         }
 
         private static void SetField(object target, string fieldName, object value)
@@ -227,6 +239,63 @@ namespace Game
             if (target == null || value == null) return;
             var f = target.GetType().GetField(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (f != null) f.SetValue(target, value);
+        }
+
+        /// <summary>
+        /// Ensures the player has all components needed for first-person portal gameplay,
+        /// then invokes the idempotent PortalSceneSetup.EnsureSetup() to create or repair
+        /// portal systems, placement, firing input, traversal and HUD.
+        /// </summary>
+        private static void EnsurePortalBootstrap()
+        {
+            // Find or infer the player GameObject.
+            GameObject player = GameObject.Find("Player");
+            if (player == null)
+            {
+                CharacterController controller = UnityEngine.Object.FindFirstObjectByType<CharacterController>();
+                if (controller != null) player = controller.gameObject;
+            }
+
+            if (player != null)
+            {
+                // Ensure movement and camera components exist on the player.
+                // These types live in Assembly-CSharp (global namespace); resolve via
+                // Type.GetType to avoid a hard compile-time assembly reference.
+                if (player.GetComponent<CharacterController>() == null)
+                    player.AddComponent<CharacterController>();
+                AddComponentIfMissing(player, "PlayerMovementManager, Assembly-CSharp");
+                AddComponentIfMissing(player, "BasicMovementController, Assembly-CSharp");
+                AddComponentIfMissing(player, "CameraLookController, Assembly-CSharp");
+
+                // Ensure a camera is assigned to CameraLookController.
+                Component cameraLookComp = player.GetComponent(Type.GetType("CameraLookController, Assembly-CSharp"));
+                if (cameraLookComp != null)
+                {
+                    var cameraLookField = cameraLookComp.GetType().GetField("playerCamera");
+                    if (cameraLookField != null && cameraLookField.GetValue(cameraLookComp) == null)
+                    {
+                        Camera cam = Camera.main;
+                        if (cam == null)
+                        {
+                            GameObject camGo = new GameObject("Main Camera");
+                            cam = camGo.AddComponent<Camera>();
+                            cam.tag = "MainCamera";
+                        }
+                        cameraLookField.SetValue(cameraLookComp, cam);
+                    }
+                }
+            }
+
+            // Idempotently create or repair portal systems and paired portals.
+            PortalSceneSetup.EnsureSetup(out string setupMessage);
+        }
+
+        private static void AddComponentIfMissing(GameObject target, string assemblyQualifiedTypeName)
+        {
+            Type type = Type.GetType(assemblyQualifiedTypeName);
+            if (type == null) return;
+            if (target.GetComponent(type) == null)
+                target.AddComponent(type);
         }
     }
 }
